@@ -1,6 +1,8 @@
 int xCoordsIndex = 0;
 vision::signature colors[2] = {BLUEY, REDY};
 int xCoords[8] = {158, 158, 158, 158, 158, 158, 158, 158};
+bool goalFound = 0;
+
 void redLight() {
   FL.setBrake(brake);
   FR.setBrake(brake);
@@ -86,30 +88,37 @@ int getAverage(const int (*list)[8]) {
 void GetVisionCoords() {
   for (vision::signature item : colors) {
     Vision.takeSnapshot(item);
-    if (Vision.largestObject.exists) {
+    if (!Vision.largestObject.exists) {
+      goalFound = 0;
+      xCoords[xCoordsIndex % 8] = 158;
+    } else {
       xCoords[xCoordsIndex % 8] = Vision.largestObject.centerX;
       xCoordsIndex++;
+      goalFound = 1;
       return;
     }
   }
-  xCoords[xCoordsIndex % 8] = 158;
 }
 
 // USERCONTROL
 
 void usercontrol(void) {
   if (Controller1.ButtonL2.pressing()) { // Aims robot and lauches catapult
-      while (1) {
-        if (visionPID(getAverage(&xCoords))) {
-          break;
+      if (goalFound) {
+        while (1) {
+          if (visionPID(getAverage(&xCoords))) {
+            break;
+          }
+          for (int j = 0; j < 8; j++) {
+            GetVisionCoords();
+          }
+          wait(10, msec);
         }
-        for (int j = 0; j < 8; j++) {
-          GetVisionCoords();
-        }
-        wait(10, msec);
       }
       wait(100, msec);
       Catapult.spinFor(fwd, 10, rev, false);
+      intakeAllowed = 0;
+      Intake.stop();
       wait(100, msec);
     }
 }
