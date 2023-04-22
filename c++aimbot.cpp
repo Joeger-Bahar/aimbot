@@ -21,48 +21,61 @@ void Brake() {
   redLight();
   greenLight();
 }
-void visionAim(const int visionCenter = 158, const int OKError = 15) {
-  double x;
 
-  FL.setVelocity(100, pct);
-  FR.setVelocity(100, pct);
-  RL.setVelocity(100, pct);
-  RR.setVelocity(100, pct);
 
-  Vision.takeSnapshot(REDY);
-  while (Vision.largestObject.exists && Controller1.ButtonX.pressing()) {
-    Vision.takeSnapshot(REDY);
-    x = Vision.largestObject.centerX; // Gets center x value of object
-    if (x < (visionCenter - OKError)) {
-      FR.spin(fwd);
-      RR.spin(fwd);
-      FL.spin(vex::reverse);
-      RL.spin(vex::reverse);
-    }
-    Brake();
-    if (x > (visionCenter + OKError)) {
-      FR.spin(vex::reverse);
-      RR.spin(vex::reverse);
-      FL.spin(fwd);
-      RL.spin(fwd);
-    }
-    Brake();
-  }
-}
-void visionPID(const int xCoord) {
-  double kp = 0.18, err, pidout;
+// DON'T USE THIS FUNCTOIN!!!!
+
+
+// void visionAim(const int visionCenter = 158, const int OKError = 15) {
+//   double x;
+
+//   FL.setVelocity(100, pct);
+//   FR.setVelocity(100, pct);
+//   RL.setVelocity(100, pct);
+//   RR.setVelocity(100, pct);
+
+//   Vision.takeSnapshot(REDY);
+//   while (Vision.largestObject.exists && Controller1.ButtonX.pressing()) {
+//     Vision.takeSnapshot(REDY);
+//     x = Vision.largestObject.centerX; // Gets center x value of object
+//     if (x < (visionCenter - OKError)) {
+//       FR.spin(fwd);
+//       RR.spin(fwd);
+//       FL.spin(vex::reverse);
+//       RL.spin(vex::reverse);
+//     }
+//     Brake();
+//     if (x > (visionCenter + OKError)) {
+//       FR.spin(vex::reverse);
+//       RR.spin(vex::reverse);
+//       FL.spin(fwd);
+//       RL.spin(fwd);
+//     }
+//     Brake();
+//   }
+// }
+bool visionPID(const int xCoord) {
+  double kp = 0.09, err, pidout;
 
   err = 158 - xCoord;
-  pidout = (err * DEGREES_TO_PIXELS) * kp;
+  Brain.Screen.clearScreen();
+  Brain.Screen.clearLine();
+  Brain.Screen.print(err);
+  if (abs(err) <= 8) {
+    return 1;
+  } else {
+    pidout = (err * DEGREES_TO_PIXELS) * kp;
 
-  FL.spinFor(vex::reverse, pidout, deg, false);
-  ML.spinFor(vex::reverse, pidout, deg, false);
-  RL.spinFor(vex::reverse, pidout, deg, false);
-  FR.spinFor(fwd, pidout, deg, false);
-  MR.spinFor(fwd, pidout, deg, false);
-  RR.spinFor(fwd, pidout, deg);
+    FL.spinFor(vex::reverse, pidout, deg, false);
+    ML.spinFor(vex::reverse, pidout, deg, false);
+    RL.spinFor(vex::reverse, pidout, deg, false);
+    FR.spinFor(fwd, pidout, deg, false);
+    MR.spinFor(fwd, pidout, deg, false);
+    RR.spinFor(fwd, pidout, deg);
 
-  Brake();
+    Brake();
+    return 0;
+  }
 }
 
 int getAverage(const int (*list)[8]) {
@@ -73,8 +86,30 @@ int getAverage(const int (*list)[8]) {
 void GetVisionCoords() {
   for (vision::signature item : colors) {
     Vision.takeSnapshot(item);
-    xCoords[xCoordsIndex % 8] = Vision.largestObject.exists ? 
-                                Vision.largestObject.centerX : 158;
-    xCoordsIndex++;
+    if (Vision.largestObject.exists) {
+      xCoords[xCoordsIndex % 8] = Vision.largestObject.centerX;
+      xCoordsIndex++;
+      return;
+    }
   }
+  xCoords[xCoordsIndex % 8] = 158;
+}
+
+// USERCONTROL
+
+void usercontrol(void) {
+  if (Controller1.ButtonL2.pressing()) { // Aims robot and lauches catapult
+      while (1) {
+        if (visionPID(getAverage(&xCoords))) {
+          break;
+        }
+        for (int j = 0; j < 8; j++) {
+          GetVisionCoords();
+        }
+        wait(10, msec);
+      }
+      wait(100, msec);
+      Catapult.spinFor(fwd, 10, rev, false);
+      wait(100, msec);
+    }
 }
