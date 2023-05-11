@@ -1,3 +1,5 @@
+#define DEGREES_TO_PIXELS 5.2666
+
 int xCoordsIndex = 0;
 vision::signature colors[2] = {BLUEY, REDY};
 int xCoords[8] = {158, 158, 158, 158, 158, 158, 158, 158};
@@ -25,8 +27,8 @@ void Brake() {
 }
 
 
-// DON'T USE THIS FUNCTOIN!!!!
 
+// Simple version
 
 // void visionAim(const int visionCenter = 158, const int OKError = 15) {
 //   double x;
@@ -56,6 +58,7 @@ void Brake() {
 //     Brake();
 //   }
 // }
+
 bool visionPID(const int xCoord) {
   double kp = 0.09, err, pidout;
 
